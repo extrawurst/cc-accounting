@@ -123,12 +123,15 @@ impl eframe::App for App {
 
                     let mut rows_skipped = 0;
                     body.rows(16.0, rows, |row_index, mut row| {
+                        let mut row_index = row_index + rows_skipped;
                         if !self.show_hidden {
-                            while self.row_meta_data[row_index + rows_skipped].hidden {
+                            while self.row_meta_data[row_index].hidden {
                                 rows_skipped += 1;
+                                row_index += 1;
                             }
                         }
-                        let meta = &mut self.row_meta_data[row_index + rows_skipped];
+
+                        let meta = &mut self.row_meta_data[row_index];
 
                         let mut update_hidden = false;
                         row.col(|ui| {
@@ -146,7 +149,7 @@ impl eframe::App for App {
                             self.update_hidden();
                         }
 
-                        for cell in &self.rows[row_index + rows_skipped].cells {
+                        for cell in &self.rows[row_index].cells {
                             row.col(|ui| {
                                 if is_hidden {
                                     ui.style_mut().visuals.override_text_color =
