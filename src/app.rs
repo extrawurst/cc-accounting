@@ -1,4 +1,4 @@
-use egui::Color32;
+use egui::{Color32, WidgetText};
 
 const APP_KEY: &str = "CC";
 
@@ -122,7 +122,8 @@ impl eframe::App for App {
                     };
 
                     let mut rows_skipped = 0;
-                    body.rows(16.0, rows, |row_index, mut row| {
+                    let row_height = 18.0;
+                    body.rows(row_height, rows, |row_index, mut row| {
                         let mut row_index = row_index + rows_skipped;
                         if !self.show_hidden {
                             while self.row_meta_data[row_index].hidden {
@@ -151,11 +152,27 @@ impl eframe::App for App {
 
                         for cell in &self.rows[row_index].cells {
                             row.col(|ui| {
+                                let row_hovered = ctx
+                                    .pointer_hover_pos()
+                                    .map(|pos| {
+                                        let widget_pos = ui.next_widget_position().y;
+
+                                        let cursor_height_div_2 = row_height / 2.0;
+                                        pos.y > widget_pos - cursor_height_div_2
+                                            && pos.y < widget_pos + cursor_height_div_2
+                                    })
+                                    .unwrap_or_default();
+
                                 if is_hidden {
                                     ui.style_mut().visuals.override_text_color =
                                         Some(Color32::GRAY);
                                 }
-                                ui.label(cell);
+
+                                let mut w = WidgetText::from(cell);
+                                if row_hovered {
+                                    w = w.background_color(Color32::LIGHT_GREEN);
+                                }
+                                ui.label(w);
                                 if is_hidden {
                                     ui.reset_style();
                                 }
