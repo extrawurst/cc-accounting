@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use egui::{Color32, WidgetText};
 
 const APP_KEY: &str = "CC";
@@ -24,9 +26,25 @@ pub struct App {
     #[serde(skip)]
     rows: Vec<CsvRow>,
     #[serde(skip)]
+    pdfs: Vec<PathBuf>,
+    #[serde(skip)]
     visible_rows: usize,
     #[serde(skip)]
     max_cells: usize,
+}
+
+fn find_pdfs(path: &str) -> Vec<PathBuf> {
+    let paths = std::fs::read_dir(path).unwrap();
+
+    let mut res = Vec::new();
+    for path in paths {
+        let path = path.unwrap().path();
+        if path.extension().map(|ext| ext == "pdf").unwrap_or_default() {
+            res.push(path.to_path_buf());
+        }
+    }
+
+    res
 }
 
 impl App {
@@ -42,6 +60,8 @@ impl App {
         } else {
             Default::default()
         };
+
+        let pdfs = find_pdfs("./cc-2022-06");
 
         let file = std::fs::File::open("./cc-2022-06/table.csv").unwrap();
         let mut rdr = csv::ReaderBuilder::new()
@@ -67,6 +87,7 @@ impl App {
         let mut app = Self {
             rows,
             max_cells,
+            pdfs,
             ..base
         };
 
@@ -111,7 +132,7 @@ impl eframe::App for App {
 
             TableBuilder::new(ui)
                 .striped(true)
-                .columns(Size::initial(40.0).at_least(40.0), self.max_cells + 1)
+                .columns(Size::initial(40.0).at_least(40.0), self.max_cells + 2)
                 .cell_layout(egui::Layout::left_to_right().with_cross_align(egui::Align::Center))
                 .resizable(true)
                 .body(|body| {
@@ -178,6 +199,15 @@ impl eframe::App for App {
                                 }
                             });
                         }
+
+                        let meta = &self.row_meta_data[row_index];
+
+                        row.col(|ui| {
+                            match &meta.receipt {
+                                Some(receipt) => ui.label(receipt),
+                                None => ui.label("-"),
+                            };
+                        });
                     });
                 });
         });
