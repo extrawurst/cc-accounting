@@ -1,26 +1,42 @@
-/// We derive Deserialize/Serialize so we can persist app state on shutdown.
-#[derive(serde::Deserialize, serde::Serialize)]
-#[serde(default)] // if we add new fields, give them default values when deserializing old state
-pub struct TemplateApp {
-    // Example stuff:
-    label: String,
+const APP_KEY: &str = "CC";
 
-    // this how you opt-out of serialization of a member
-    #[serde(skip)]
-    value: f32,
+#[derive(Debug, Default, serde::Deserialize)]
+#[serde(default)]
+struct CsvRow {
+    pub cells: Vec<String>,
 }
 
-impl Default for TemplateApp {
+#[derive(Debug, Clone, Default, serde::Deserialize)]
+#[serde(default)]
+struct RowMetaData {
+    pub hidden: bool,
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+#[serde(default)]
+pub struct App {
+    show_hidden: bool,
+
+    #[serde(skip)]
+    rows: Vec<CsvRow>,
+    #[serde(skip)]
+    row_meta_data: Vec<RowMetaData>,
+    #[serde(skip)]
+    max_cells: usize,
+}
+
+impl Default for App {
     fn default() -> Self {
         Self {
-            // Example stuff:
-            label: "Hello World!".to_owned(),
-            value: 2.7,
+            show_hidden: false,
+            max_cells: 0,
+            rows: Vec::new(),
+            row_meta_data: Vec::new(),
         }
     }
 }
 
-impl TemplateApp {
+impl App {
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // This is also where you can customized the look at feel of egui using
@@ -28,34 +44,55 @@ impl TemplateApp {
 
         // Load previous app state (if any).
         // Note that you must enable the `persistence` feature for this to work.
-        if let Some(storage) = cc.storage {
-            return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
+        let base: Self = if let Some(storage) = cc.storage {
+            eframe::get_value(storage, APP_KEY).unwrap_or_default()
+        } else {
+            Default::default()
+        };
+
+        let file = std::fs::File::open("./cc-2022-06/table.csv").unwrap();
+        let mut rdr = csv::ReaderBuilder::new()
+            .flexible(true)
+            .delimiter(b';')
+            .from_reader(file);
+        let mut rows = Vec::new();
+        let mut max_cells = 0;
+        for result in rdr.byte_records() {
+            let result = result.unwrap();
+            let mut row = Vec::new();
+            for result in result.iter() {
+                row.push(String::from_utf8_lossy(result).to_string());
+            }
+
+            max_cells = std::cmp::max(max_cells, row.len());
+
+            rows.push(CsvRow { cells: row });
         }
 
-        Default::default()
+        let row_count = rows.len();
+
+        Self {
+            rows,
+            max_cells,
+            row_meta_data: vec![RowMetaData::default(); row_count],
+            ..base
+        }
     }
 }
 
-impl eframe::App for TemplateApp {
-    /// Called by the frame work to save state before shutdown.
+impl eframe::App for App {
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        eframe::set_value(storage, eframe::APP_KEY, self);
+        eframe::set_value(storage, APP_KEY, self);
     }
 
-    /// Called each time the UI needs repainting, which may be many times per second.
-    /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        let Self { label, value } = self;
-
-        // Examples of how to create different panels and windows.
-        // Pick whichever suits you.
-        // Tip: a good default choice is to just keep the `CentralPanel`.
-        // For inspiration and more examples, go to https://emilk.github.io/egui
-
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             // The top panel is often a good place for a menu bar:
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
+                    if ui.checkbox(&mut self.show_hidden, "Show Hidden").clicked() {
+                        ui.close_menu();
+                    }
                     if ui.button("Quit").clicked() {
                         frame.quit();
                     }
@@ -63,49 +100,35 @@ impl eframe::App for TemplateApp {
             });
         });
 
-        egui::SidePanel::left("side_panel").show(ctx, |ui| {
-            ui.heading("Side Panel");
-
-            ui.horizontal(|ui| {
-                ui.label("Write something: ");
-                ui.text_edit_singleline(label);
-            });
-
-            ui.add(egui::Slider::new(value, 0.0..=10.0).text("value"));
-            if ui.button("Increment").clicked() {
-                *value += 1.0;
-            }
-
-            ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-                ui.horizontal(|ui| {
-                    ui.spacing_mut().item_spacing.x = 0.0;
-                    ui.label("powered by ");
-                    ui.hyperlink_to("egui", "https://github.com/emilk/egui");
-                    ui.label(" and ");
-                    ui.hyperlink_to("eframe", "https://github.com/emilk/egui/tree/master/eframe");
-                });
-            });
-        });
-
         egui::CentralPanel::default().show(ctx, |ui| {
-            // The central panel the region left after adding TopPanel's and SidePanel's
+            use egui_extras::{Size, TableBuilder};
 
-            ui.heading("eframe template");
-            ui.hyperlink("https://github.com/emilk/eframe_template");
-            ui.add(egui::github_link_file!(
-                "https://github.com/emilk/eframe_template/blob/master/",
-                "Source code."
-            ));
-            egui::warn_if_debug_build(ui);
+            TableBuilder::new(ui)
+                .striped(true)
+                .columns(Size::initial(40.0).at_least(40.0), self.max_cells + 1)
+                .cell_layout(egui::Layout::left_to_right().with_cross_align(egui::Align::Center))
+                .resizable(true)
+                .body(|body| {
+                    body.rows(16.0, self.rows.len(), |row_index, mut row| {
+                        let meta = &mut self.row_meta_data[row_index];
+
+                        row.col(|ui| {
+                            if self.show_hidden {
+                                ui.checkbox(&mut meta.hidden, "hide");
+                            } else {
+                                if ui.small_button("hide").clicked() {
+                                    meta.hidden = true;
+                                }
+                            }
+                        });
+
+                        for cell in &self.rows[row_index].cells {
+                            row.col(|ui| {
+                                ui.label(cell);
+                            });
+                        }
+                    });
+                });
         });
-
-        if false {
-            egui::Window::new("Window").show(ctx, |ui| {
-                ui.label("Windows can be moved by dragging them.");
-                ui.label("They are automatically sized based on contents.");
-                ui.label("You can turn on resizing and scrolling if you like.");
-                ui.label("You would normally chose either panels OR windows.");
-            });
-        }
     }
 }
