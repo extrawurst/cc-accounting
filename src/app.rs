@@ -1,3 +1,5 @@
+use egui::Color32;
+
 const APP_KEY: &str = "CC";
 
 #[derive(Debug, Default, serde::Deserialize)]
@@ -10,6 +12,7 @@ struct CsvRow {
 #[serde(default)]
 struct RowMetaData {
     pub hidden: bool,
+    pub receipt: Option<String>,
 }
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
@@ -67,6 +70,7 @@ impl App {
             ..base
         };
 
+        //if mismatch in length we regenerate meta data
         if app.row_meta_data.len() < app.rows.len() {
             app.row_meta_data = vec![RowMetaData::default(); row_count];
         }
@@ -135,13 +139,23 @@ impl eframe::App for App {
                                 update_hidden = true;
                             }
                         });
+
+                        let is_hidden = meta.hidden;
+
                         if update_hidden {
                             self.update_hidden();
                         }
 
                         for cell in &self.rows[row_index + rows_skipped].cells {
                             row.col(|ui| {
+                                if is_hidden {
+                                    ui.style_mut().visuals.override_text_color =
+                                        Some(Color32::GRAY);
+                                }
                                 ui.label(cell);
+                                if is_hidden {
+                                    ui.reset_style();
+                                }
                             });
                         }
                     });
