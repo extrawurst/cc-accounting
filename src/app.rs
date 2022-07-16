@@ -12,7 +12,7 @@ struct RowMetaData {
     pub hidden: bool,
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(Default, serde::Deserialize, serde::Serialize)]
 #[serde(default)]
 pub struct App {
     show_hidden: bool,
@@ -24,18 +24,6 @@ pub struct App {
     visible_rows: usize,
     #[serde(skip)]
     max_cells: usize,
-}
-
-impl Default for App {
-    fn default() -> Self {
-        Self {
-            show_hidden: false,
-            visible_rows: 0,
-            max_cells: 0,
-            rows: Vec::new(),
-            row_meta_data: Vec::new(),
-        }
-    }
 }
 
 impl App {
@@ -133,7 +121,7 @@ impl eframe::App for App {
                     body.rows(16.0, rows, |row_index, mut row| {
                         if !self.show_hidden {
                             while self.row_meta_data[row_index + rows_skipped].hidden {
-                                rows_skipped = rows_skipped + 1;
+                                rows_skipped += 1;
                             }
                         }
                         let meta = &mut self.row_meta_data[row_index + rows_skipped];
@@ -142,11 +130,9 @@ impl eframe::App for App {
                         row.col(|ui| {
                             if self.show_hidden {
                                 update_hidden = ui.checkbox(&mut meta.hidden, "hide").changed();
-                            } else {
-                                if ui.small_button("hide").clicked() {
-                                    meta.hidden = true;
-                                    update_hidden = true;
-                                }
+                            } else if ui.small_button("hide").clicked() {
+                                meta.hidden = true;
+                                update_hidden = true;
                             }
                         });
                         if update_hidden {
