@@ -458,9 +458,9 @@ dependencies = [
 
 [[package]]
 name = "egui"
-version = "0.18.0"
+version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c4be5abc5b868ade7db0caf8e96f2c3ddccb243f7e93d382cf5d0e43f85ae86"
+checksum = "eb095a8b9feb9b7ff8f00b6776dffcef059538a3f4a91238e03c900e9c9ad9a2"
 dependencies = [
  "ahash",
  "epaint",
@@ -521,9 +521,9 @@ dependencies = [
 
 [[package]]
 name = "epaint"
-version = "0.18.0"
+version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4dfd8ef097bd349762fcf1c7a5ef2f0e686f9919253b7a298827d6ff9d401dee"
+checksum = "0c29567088888e8ac3e8f61bbb2ddc820207ebb8d69eefde5bcefa06d65e4e89"
 dependencies = [
  "ab_glyph",
  "ahash",
