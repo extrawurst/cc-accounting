@@ -6,7 +6,7 @@ struct CsvRow {
     pub cells: Vec<String>,
 }
 
-#[derive(Debug, Clone, Default, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Deserialize, serde::Serialize)]
 #[serde(default)]
 struct RowMetaData {
     pub hidden: bool,
@@ -16,11 +16,12 @@ struct RowMetaData {
 #[serde(default)]
 pub struct App {
     show_hidden: bool,
+    row_meta_data: Vec<RowMetaData>,
 
     #[serde(skip)]
     rows: Vec<CsvRow>,
     #[serde(skip)]
-    row_meta_data: Vec<RowMetaData>,
+    visible_rows: usize,
     #[serde(skip)]
     max_cells: usize,
 }
@@ -29,6 +30,7 @@ impl Default for App {
     fn default() -> Self {
         Self {
             show_hidden: false,
+            visible_rows: 0,
             max_cells: 0,
             rows: Vec::new(),
             row_meta_data: Vec::new(),
@@ -71,12 +73,24 @@ impl App {
 
         let row_count = rows.len();
 
-        Self {
+        let mut app = Self {
             rows,
             max_cells,
-            row_meta_data: vec![RowMetaData::default(); row_count],
             ..base
+        };
+
+        if app.row_meta_data.len() < app.rows.len() {
+            app.row_meta_data = vec![RowMetaData::default(); row_count];
         }
+
+        app.update_hidden();
+
+        app
+    }
+
+    fn update_hidden(&mut self) {
+        self.visible_rows = self.row_meta_data.iter().filter(|r| !r.hidden).count();
+        // info!("update hidden: {}", self.visible_rows);
     }
 }
 
@@ -109,20 +123,37 @@ impl eframe::App for App {
                 .cell_layout(egui::Layout::left_to_right().with_cross_align(egui::Align::Center))
                 .resizable(true)
                 .body(|body| {
-                    body.rows(16.0, self.rows.len(), |row_index, mut row| {
-                        let meta = &mut self.row_meta_data[row_index];
+                    let rows = if self.show_hidden {
+                        self.rows.len()
+                    } else {
+                        self.visible_rows
+                    };
 
+                    let mut rows_skipped = 0;
+                    body.rows(16.0, rows, |row_index, mut row| {
+                        if !self.show_hidden {
+                            while self.row_meta_data[row_index + rows_skipped].hidden {
+                                rows_skipped = rows_skipped + 1;
+                            }
+                        }
+                        let meta = &mut self.row_meta_data[row_index + rows_skipped];
+
+                        let mut update_hidden = false;
                         row.col(|ui| {
                             if self.show_hidden {
-                                ui.checkbox(&mut meta.hidden, "hide");
+                                update_hidden = ui.checkbox(&mut meta.hidden, "hide").changed();
                             } else {
                                 if ui.small_button("hide").clicked() {
                                     meta.hidden = true;
+                                    update_hidden = true;
                                 }
                             }
                         });
+                        if update_hidden {
+                            self.update_hidden();
+                        }
 
-                        for cell in &self.rows[row_index].cells {
+                        for cell in &self.rows[row_index + rows_skipped].cells {
                             row.col(|ui| {
                                 ui.label(cell);
                             });
