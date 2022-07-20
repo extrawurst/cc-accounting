@@ -128,52 +128,79 @@ impl eframe::App for App {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            use egui_extras::{Size, TableBuilder};
-
-            TableBuilder::new(ui)
-                .striped(true)
-                .columns(Size::initial(40.0).at_least(40.0), self.max_cells + 2)
-                .cell_layout(egui::Layout::left_to_right().with_cross_align(egui::Align::Center))
+            egui::SidePanel::right("right_panel")
                 .resizable(true)
-                .body(|body| {
-                    let rows = if self.show_hidden {
-                        self.rows.len()
-                    } else {
-                        self.visible_rows
-                    };
-
-                    let mut rows_skipped = 0;
-                    let row_height = 18.0;
-                    body.rows(row_height, rows, |row_index, mut row| {
-                        let mut row_index = row_index + rows_skipped;
-                        if !self.show_hidden {
-                            while self.row_meta_data[row_index].hidden {
-                                rows_skipped += 1;
-                                row_index += 1;
-                            }
+                .default_width(150.0)
+                .width_range(80.0..=200.0)
+                .show_inside(ui, |ui| {
+                    ui.vertical_centered(|ui| {
+                        ui.heading("Files");
+                    });
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                        for (_idx, pdf) in self.pdfs.iter().enumerate() {
+                            ui.label(pdf.to_str().unwrap());
                         }
+                    });
+                });
 
-                        let meta = &mut self.row_meta_data[row_index];
+            egui::CentralPanel::default().show_inside(ui, |ui| {
+                self.draw_table(ui, ctx);
+            });
+        });
+    }
+}
 
-                        let mut update_hidden = false;
+impl App {
+    fn draw_table(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
+        use egui_extras::{Size, TableBuilder};
+
+        let contains_pointer = ui.ui_contains_pointer();
+
+        TableBuilder::new(ui)
+            .striped(true)
+            .columns(Size::initial(40.0).at_least(40.0), self.max_cells + 2)
+            .cell_layout(egui::Layout::left_to_right().with_cross_align(egui::Align::Center))
+            .resizable(true)
+            .body(|body| {
+                let rows = if self.show_hidden {
+                    self.rows.len()
+                } else {
+                    self.visible_rows
+                };
+
+                let mut rows_skipped = 0;
+                let row_height = 18.0;
+                body.rows(row_height, rows, |row_index, mut row| {
+                    let mut row_index = row_index + rows_skipped;
+                    if !self.show_hidden {
+                        while self.row_meta_data[row_index].hidden {
+                            rows_skipped += 1;
+                            row_index += 1;
+                        }
+                    }
+
+                    let meta = &mut self.row_meta_data[row_index];
+
+                    let mut update_hidden = false;
+                    row.col(|ui| {
+                        if self.show_hidden {
+                            update_hidden = ui.checkbox(&mut meta.hidden, "hide").changed();
+                        } else if ui.small_button("hide").clicked() {
+                            meta.hidden = true;
+                            update_hidden = true;
+                        }
+                    });
+
+                    let is_hidden = meta.hidden;
+
+                    if update_hidden {
+                        self.update_hidden();
+                    }
+
+                    for cell in &self.rows[row_index].cells {
                         row.col(|ui| {
-                            if self.show_hidden {
-                                update_hidden = ui.checkbox(&mut meta.hidden, "hide").changed();
-                            } else if ui.small_button("hide").clicked() {
-                                meta.hidden = true;
-                                update_hidden = true;
-                            }
-                        });
-
-                        let is_hidden = meta.hidden;
-
-                        if update_hidden {
-                            self.update_hidden();
-                        }
-
-                        for cell in &self.rows[row_index].cells {
-                            row.col(|ui| {
-                                let row_hovered = ctx
+                            let row_hovered = contains_pointer
+                                && ctx
                                     .pointer_hover_pos()
                                     .map(|pos| {
                                         let widget_pos = ui.next_widget_position().y;
@@ -184,32 +211,30 @@ impl eframe::App for App {
                                     })
                                     .unwrap_or_default();
 
-                                if is_hidden {
-                                    ui.style_mut().visuals.override_text_color =
-                                        Some(Color32::GRAY);
-                                }
+                            if is_hidden {
+                                ui.style_mut().visuals.override_text_color = Some(Color32::GRAY);
+                            }
 
-                                let mut w = WidgetText::from(cell);
-                                if row_hovered {
-                                    w = w.background_color(Color32::LIGHT_GREEN);
-                                }
-                                ui.label(w);
-                                if is_hidden {
-                                    ui.reset_style();
-                                }
-                            });
-                        }
-
-                        let meta = &self.row_meta_data[row_index];
-
-                        row.col(|ui| {
-                            match &meta.receipt {
-                                Some(receipt) => ui.label(receipt),
-                                None => ui.label("-"),
-                            };
+                            let mut w = WidgetText::from(cell);
+                            if row_hovered {
+                                w = w.background_color(Color32::LIGHT_GREEN);
+                            }
+                            ui.label(w);
+                            if is_hidden {
+                                ui.reset_style();
+                            }
                         });
+                    }
+
+                    let meta = &self.row_meta_data[row_index];
+
+                    row.col(|ui| {
+                        match &meta.receipt {
+                            Some(receipt) => ui.label(receipt),
+                            None => ui.label("-"),
+                        };
                     });
                 });
-        });
+            });
     }
 }
