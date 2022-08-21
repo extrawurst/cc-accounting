@@ -14,9 +14,9 @@ path = "src/main.rs"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-egui = "0.18.1"
-egui_extras = "0.18.0"
-eframe = { version = "0.18.0", features = ["persistence"] }
+egui = "0.19"
+egui_extras = "0.19"
+eframe = { version = "0.19", features = ["persistence"] }
 serde = { version = "1", features = ["derive"] } # You only need this if you want app persistence
 csv = "1.1"
 tracing = "0.1"
