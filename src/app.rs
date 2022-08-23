@@ -2,8 +2,8 @@ use std::path::PathBuf;
 
 use eframe::epaint;
 use egui::{
-    color, Color32, CursorIcon, Id, InnerResponse, LayerId, Order, Rect, Sense, Shape, Ui, Vec2,
-    WidgetText,
+    color, Color32, CursorIcon, Id, InnerResponse, Label, LayerId, Order, Rect, Sense, Shape, Ui,
+    Vec2, WidgetText,
 };
 
 const APP_KEY: &str = "CC";
@@ -70,8 +70,6 @@ impl App {
             Default::default()
         };
 
-        let pdfs = find_pdfs("./cc-2022-06");
-
         let file = std::fs::File::open("./cc-2022-06/table.csv").unwrap();
         let mut rdr = csv::ReaderBuilder::new()
             .flexible(true)
@@ -96,9 +94,11 @@ impl App {
         let mut app = Self {
             rows,
             max_cells,
-            pdfs,
+            pdfs: Vec::new(),
             ..base
         };
+
+        app.reread_pdfs();
 
         //if mismatch in length we regenerate meta data
         if app.row_meta_data.len() < app.rows.len() {
@@ -120,9 +120,36 @@ impl App {
             if let Some(drop_row) = self.drop_row {
                 if let Some(meta) = self.row_meta_data.get_mut(drop_row) {
                     meta.receipt = Some(self.pdfs[source_row].to_string_lossy().to_string());
+                    self.drag_row = None;
+                    self.drop_row = None;
+                    self.reread_pdfs();
                 }
             }
         }
+    }
+
+    fn reread_pdfs(&mut self) {
+        self.pdfs = find_pdfs("./cc-2022-06");
+
+        // info!("found pdfs: {}", self.pdfs.len());
+
+        self.pdfs = self
+            .pdfs
+            .iter()
+            .filter(|p| {
+                !self.row_meta_data.iter().any(|e| match &e.receipt {
+                    None => false,
+                    Some(e) => {
+                        let match_found = p.to_str().map_or(false, |p| p == e);
+                        // info!("found match: {:?} / '{}'", p, e);
+                        match_found
+                    }
+                })
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+
+        // info!("pdfs after filter: {}", self.pdfs.len());
     }
 }
 
@@ -136,6 +163,11 @@ impl eframe::App for App {
             // The top panel is often a good place for a menu bar:
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
+                    if ui.button("Clear All").clicked() {
+                        self.row_meta_data.iter_mut().for_each(|e| e.receipt = None);
+                        self.reread_pdfs();
+                        ui.close_menu();
+                    }
                     if ui.checkbox(&mut self.show_hidden, "Show Hidden").clicked() {
                         ui.close_menu();
                     }
@@ -333,13 +365,15 @@ impl App {
                         });
                     }
 
-                    let meta = &self.row_meta_data[row_index];
+                    let meta = &mut self.row_meta_data[row_index];
 
                     let can_accept_what_is_being_dragged = meta.receipt.is_none();
 
+                    let mut reread = false;
+
                     row.col(|ui| {
                         let response = match &meta.receipt {
-                            Some(receipt) => ui.label(receipt),
+                            Some(receipt) => ui.add(Label::new(receipt).sense(Sense::click())),
                             None => {
                                 Self::drop_target(ui, can_accept_what_is_being_dragged, |ui| {
                                     ui.label("-")
@@ -347,6 +381,14 @@ impl App {
                                 .response
                             }
                         };
+
+                        let response = response.context_menu(|ui| {
+                            if ui.button("clear").clicked() {
+                                meta.receipt = None;
+                                reread = true;
+                                ui.close_menu();
+                            }
+                        });
 
                         let is_being_dragged = ui.memory().is_anything_being_dragged();
                         if is_being_dragged
@@ -356,6 +398,10 @@ impl App {
                             self.drop_row = Some(row_index);
                         }
                     });
+
+                    if reread {
+                        self.reread_pdfs();
+                    }
                 });
             });
 
