@@ -226,10 +226,13 @@ impl eframe::App for App {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
+            egui::CentralPanel::default().show_inside(ui, |ui| {
+                self.draw_table(ui, ctx);
+            });
+
             egui::SidePanel::right("right_panel")
                 .resizable(true)
                 .default_width(150.0)
-                .width_range(80.0..=200.0)
                 .show_inside(ui, |ui| {
                     ui.vertical_centered(|ui| {
                         ui.heading("Files");
@@ -248,10 +251,6 @@ impl eframe::App for App {
                         }
                     });
                 });
-
-            egui::CentralPanel::default().show_inside(ui, |ui| {
-                self.draw_table(ui, ctx);
-            });
         });
     }
 }
