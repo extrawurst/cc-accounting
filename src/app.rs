@@ -448,7 +448,7 @@ impl App {
                                 .add_enabled(meta.receipt.is_some(), egui::Button::new("name"))
                                 .clicked()
                             {
-                                meta.rename_pdf(&csv_row);
+                                meta.rename_pdf(csv_row);
                                 reread = true;
                                 ui.close_menu();
                             }
