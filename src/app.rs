@@ -2,8 +2,8 @@ use std::path::{Path, PathBuf};
 
 use eframe::epaint::{self};
 use egui::{
-    color, plot::Text, Color32, CursorIcon, Id, InnerResponse, Label, LayerId, Order, Rect, Sense,
-    Shape, Ui, Vec2, WidgetText,
+    color, Color32, CursorIcon, Id, InnerResponse, Label, LayerId, Order, Rect, Sense, Shape, Ui,
+    Vec2, WidgetText,
 };
 
 const APP_KEY: &str = "CC";
@@ -62,12 +62,14 @@ impl RowMetaData {
     }
 }
 
-#[derive(Default, serde::Deserialize, serde::Serialize)]
+#[derive(Default, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(default)]
 pub struct App {
     show_hidden: bool,
     row_meta_data: Vec<RowMetaData>,
 
+    #[serde(skip)]
+    input_file: PathBuf,
     #[serde(skip)]
     rows: Vec<CsvRow>,
     #[serde(skip)]
@@ -83,7 +85,7 @@ pub struct App {
     drag_row: Option<usize>,
 }
 
-fn find_pdfs(path: &str) -> Vec<PathBuf> {
+fn find_pdfs(path: &Path) -> Vec<PathBuf> {
     let paths = std::fs::read_dir(path).unwrap();
 
     let mut res = Vec::new();
@@ -100,18 +102,20 @@ fn find_pdfs(path: &str) -> Vec<PathBuf> {
 impl App {
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        // This is also where you can customized the look at feel of egui using
-        // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
+        let input_file = PathBuf::from(std::env::args().nth(1).expect("argument required"));
+        assert_eq!(input_file.extension().unwrap(), "csv");
 
         // Load previous app state (if any).
         // Note that you must enable the `persistence` feature for this to work.
         let base: Self = if let Some(storage) = cc.storage {
-            eframe::get_value(storage, APP_KEY).unwrap_or_default()
+            let old_state = eframe::get_value(storage, APP_KEY);
+            // tracing::info!("old state loaded: {:?}", old_state);
+            old_state.unwrap_or_default()
         } else {
             Default::default()
         };
 
-        let file = std::fs::File::open("./cc-2022-06/table.csv").unwrap();
+        let file = std::fs::File::open(&input_file).unwrap();
         let mut rdr = csv::ReaderBuilder::new()
             .flexible(true)
             .delimiter(b';')
@@ -135,6 +139,7 @@ impl App {
         let mut app = Self {
             rows,
             max_cells,
+            input_file,
             pdfs: Vec::new(),
             ..base
         };
@@ -143,6 +148,7 @@ impl App {
 
         //if mismatch in length we regenerate meta data
         if app.row_meta_data.len() < app.rows.len() {
+            tracing::warn!("not enough metadata, recreating");
             app.row_meta_data = vec![RowMetaData::default(); row_count];
         }
 
@@ -170,7 +176,7 @@ impl App {
     }
 
     fn reread_pdfs(&mut self) {
-        self.pdfs = find_pdfs("./cc-2022-06");
+        self.pdfs = find_pdfs(self.input_file.parent().unwrap());
 
         // info!("found pdfs: {}", self.pdfs.len());
 
