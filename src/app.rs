@@ -1,6 +1,6 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use eframe::epaint;
+use eframe::epaint::{self};
 use egui::{
     color, Color32, CursorIcon, Id, InnerResponse, Label, LayerId, Order, Rect, Sense, Shape, Ui,
     Vec2, WidgetText,
@@ -19,6 +19,24 @@ struct CsvRow {
 struct RowMetaData {
     pub hidden: bool,
     pub receipt: Option<String>,
+}
+
+impl RowMetaData {
+    pub fn rename_pdf(&mut self, row: &CsvRow) {
+        if let Some(receipt) = self.receipt.as_mut() {
+            let receipt_path = Path::new(receipt);
+            let target_name = format!(
+                "{}/{}{}EUR-{}.pdf",
+                receipt_path.parent().unwrap().to_str().unwrap(),
+                row.cells[0],
+                row.cells[3],
+                row.cells[2],
+            );
+            tracing::info!("rename: {} -> {}", receipt, target_name);
+            std::fs::rename(receipt.clone(), target_name.clone()).expect("TODO");
+            *receipt = target_name;
+        }
+    }
 }
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
@@ -366,6 +384,7 @@ impl App {
                     }
 
                     let meta = &mut self.row_meta_data[row_index];
+                    let csv_row = &self.rows[row_index];
 
                     let can_accept_what_is_being_dragged = meta.receipt.is_none();
 
@@ -382,19 +401,26 @@ impl App {
                             }
                         };
 
-                        let response = response.context_menu(|ui| {
+                        let hovered_label = response.hovered();
+
+                        response.context_menu(|ui| {
                             if ui.button("clear").clicked() {
                                 meta.receipt = None;
+                                reread = true;
+                                ui.close_menu();
+                            }
+                            if ui
+                                .add_enabled(meta.receipt.is_some(), egui::Button::new("name"))
+                                .clicked()
+                            {
+                                meta.rename_pdf(&csv_row);
                                 reread = true;
                                 ui.close_menu();
                             }
                         });
 
                         let is_being_dragged = ui.memory().is_anything_being_dragged();
-                        if is_being_dragged
-                            && can_accept_what_is_being_dragged
-                            && response.hovered()
-                        {
+                        if is_being_dragged && can_accept_what_is_being_dragged && hovered_label {
                             self.drop_row = Some(row_index);
                         }
                     });
