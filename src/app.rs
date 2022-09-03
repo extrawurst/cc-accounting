@@ -2,8 +2,8 @@ use std::path::{Path, PathBuf};
 
 use eframe::epaint::{self};
 use egui::{
-    color, Color32, CursorIcon, Id, InnerResponse, Label, LayerId, Order, Rect, Sense, Shape, Ui,
-    Vec2, WidgetText,
+    color, plot::Text, Color32, CursorIcon, Id, InnerResponse, Label, LayerId, Order, Rect, Sense,
+    Shape, Ui, Vec2, WidgetText,
 };
 
 const APP_KEY: &str = "CC";
@@ -23,7 +23,29 @@ struct RowMetaData {
 
 impl RowMetaData {
     pub fn rename_pdf(&mut self, row: &CsvRow) {
+        let target_name = self.target_file_name(row);
         if let Some(receipt) = self.receipt.as_mut() {
+            let target_name = target_name.expect("cannot happen since receipt is not none");
+
+            tracing::debug!("rename pdf: '{}' -> '{}'", receipt, target_name);
+
+            std::fs::rename(receipt.clone(), target_name.clone()).expect("TODO");
+            *receipt = target_name;
+        }
+    }
+
+    fn is_name_correct(&self, row: &CsvRow) -> bool {
+        let target_name = self.target_file_name(row);
+        if let Some(receipt) = self.receipt.as_ref() {
+            target_name.map(|f| f == *receipt).unwrap_or(false)
+        } else {
+            // no receipt means the name is correct
+            true
+        }
+    }
+
+    fn target_file_name(&self, row: &CsvRow) -> Option<String> {
+        if let Some(receipt) = self.receipt.as_ref() {
             let receipt_path = Path::new(receipt);
             let target_name = format!(
                 "{}/{}{}EUR-{}.pdf",
@@ -32,9 +54,10 @@ impl RowMetaData {
                 row.cells[3],
                 row.cells[2],
             );
-            tracing::info!("rename: {} -> {}", receipt, target_name);
-            std::fs::rename(receipt.clone(), target_name.clone()).expect("TODO");
-            *receipt = target_name;
+
+            Some(target_name)
+        } else {
+            None
         }
     }
 }
@@ -389,10 +412,17 @@ impl App {
                     let can_accept_what_is_being_dragged = meta.receipt.is_none();
 
                     let mut reread = false;
+                    let is_receipt_name_correct = meta.is_name_correct(csv_row);
 
                     row.col(|ui| {
                         let response = match &meta.receipt {
-                            Some(receipt) => ui.add(Label::new(receipt).sense(Sense::click())),
+                            Some(receipt) => {
+                                let mut txt = WidgetText::from(receipt);
+                                if !is_receipt_name_correct {
+                                    txt = txt.color(Color32::RED);
+                                }
+                                ui.add(Label::new(txt).sense(Sense::click()))
+                            }
                             None => {
                                 Self::drop_target(ui, can_accept_what_is_being_dragged, |ui| {
                                     ui.label("-")
