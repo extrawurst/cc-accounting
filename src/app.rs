@@ -47,12 +47,15 @@ impl RowMetaData {
     fn target_file_name(&self, row: &CsvRow) -> Option<String> {
         if let Some(receipt) = self.receipt.as_ref() {
             let receipt_path = Path::new(receipt);
+            let date = row.cells[0].clone();
+            let amount = row.cells[3].clone();
+            let entry_name = row.cells[2].clone().replace('/', "_");
             let target_name = format!(
                 "{}/{}{}EUR-{}.pdf",
                 receipt_path.parent().unwrap().to_str().unwrap(),
-                row.cells[0],
-                row.cells[3],
-                row.cells[2],
+                date,
+                amount,
+                entry_name,
             );
 
             Some(target_name)
@@ -215,9 +218,14 @@ impl eframe::App for App {
                         self.reread_pdfs();
                         ui.close_menu();
                     }
+                    if ui.button("Refresh Files").clicked() {
+                        self.reread_pdfs();
+                        ui.close_menu();
+                    }
                     if ui.checkbox(&mut self.show_hidden, "Show Hidden").clicked() {
                         ui.close_menu();
                     }
+
                     if ui.button("Quit").clicked() {
                         frame.close();
                     }
@@ -471,6 +479,7 @@ impl App {
                             if meta.receipt.is_some() && ui.button("open").clicked() {
                                 opener::open(meta.receipt.clone().unwrap_or_default())
                                     .unwrap_or_default();
+                                ui.close_menu();
                             }
                         });
 
