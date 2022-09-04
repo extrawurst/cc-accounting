@@ -1,6 +1,5 @@
 # cc app
 
-* [ ] open file in list in preview
 * [ ] persist only last input filename and reuse if no arg given
 * [ ] persist project state in separate file
 * [ ] allow hiding files in list

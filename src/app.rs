@@ -2,8 +2,8 @@ use std::path::{Path, PathBuf};
 
 use eframe::epaint::{self};
 use egui::{
-    color, Color32, CursorIcon, Id, InnerResponse, Label, LayerId, Order, Rect, Sense, Shape, Ui,
-    Vec2, WidgetText,
+    color, Color32, CursorIcon, Id, InnerResponse, Label, LayerId, Order, PointerButton, Rect,
+    Response, Sense, Shape, Ui, Vec2, WidgetText,
 };
 
 const APP_KEY: &str = "CC";
@@ -243,6 +243,14 @@ impl eframe::App for App {
                             let item_id = Id::new(id_source).with(idx);
                             App::drag_source(ui, item_id, |ui| {
                                 ui.label(pdf.to_str().unwrap());
+                            })
+                            .map(|r| {
+                                r.context_menu(|ui| {
+                                    if ui.button("open").clicked() {
+                                        ui.close_menu();
+                                        opener::open(pdf).unwrap_or_default();
+                                    }
+                                })
                             });
 
                             if ui.memory().is_being_dragged(item_id) {
@@ -301,7 +309,7 @@ impl App {
         InnerResponse::new(ret, response)
     }
 
-    pub fn drag_source(ui: &mut Ui, id: Id, body: impl FnOnce(&mut Ui)) {
+    pub fn drag_source(ui: &mut Ui, id: Id, body: impl FnOnce(&mut Ui)) -> Option<Response> {
         let is_being_dragged = ui.memory().is_being_dragged(id);
 
         if !is_being_dragged {
@@ -309,9 +317,14 @@ impl App {
 
             // Check for drags:
             let response = ui.interact(response.rect, id, Sense::drag());
-            if response.hovered() {
+            if response.dragged_by(PointerButton::Primary) {
+                ui.memory().set_dragged_id(id);
                 ui.output().cursor_icon = CursorIcon::Grab;
+            } else if response.hovered() {
+                ui.memory().set_dragged_id(Id::null());
             }
+
+            Some(response)
         } else {
             ui.output().cursor_icon = CursorIcon::Grabbing;
 
@@ -330,6 +343,8 @@ impl App {
                 let delta = pointer_pos - response.rect.center();
                 ui.ctx().translate_layer(layer_id, delta);
             }
+
+            None
         }
     }
 
@@ -445,12 +460,17 @@ impl App {
                                 ui.close_menu();
                             }
                             if ui
-                                .add_enabled(meta.receipt.is_some(), egui::Button::new("name"))
+                                .add_enabled(meta.receipt.is_some(), egui::Button::new("rename"))
                                 .clicked()
                             {
                                 meta.rename_pdf(csv_row);
                                 reread = true;
                                 ui.close_menu();
+                            }
+
+                            if meta.receipt.is_some() && ui.button("open").clicked() {
+                                opener::open(meta.receipt.clone().unwrap_or_default())
+                                    .unwrap_or_default();
                             }
                         });
 
