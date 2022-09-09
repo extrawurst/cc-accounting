@@ -22,8 +22,8 @@ struct RowMetaData {
 }
 
 impl RowMetaData {
-    pub fn rename_pdf(&mut self, row: &CsvRow) {
-        let target_name = self.target_file_name(row);
+    pub fn rename_pdf(&mut self, idx: usize, row: &CsvRow) {
+        let target_name = self.target_file_name(idx, row);
         if let Some(receipt) = self.receipt.as_mut() {
             let target_name = target_name.expect("cannot happen since receipt is not none");
 
@@ -34,8 +34,8 @@ impl RowMetaData {
         }
     }
 
-    fn is_name_correct(&self, row: &CsvRow) -> bool {
-        let target_name = self.target_file_name(row);
+    fn is_name_correct(&self, idx: usize, row: &CsvRow) -> bool {
+        let target_name = self.target_file_name(idx, row);
         if let Some(receipt) = self.receipt.as_ref() {
             target_name.map(|f| f == *receipt).unwrap_or(false)
         } else {
@@ -44,15 +44,16 @@ impl RowMetaData {
         }
     }
 
-    fn target_file_name(&self, row: &CsvRow) -> Option<String> {
+    fn target_file_name(&self, idx: usize, row: &CsvRow) -> Option<String> {
         if let Some(receipt) = self.receipt.as_ref() {
             let receipt_path = Path::new(receipt);
             let date = row.cells[0].clone();
             let amount = row.cells[3].clone();
             let entry_name = row.cells[2].clone().replace('/', "_");
             let target_name = format!(
-                "{}/{}{}EUR-{}.pdf",
+                "{}/{:0>3}-{}{}EUR-{}.pdf",
                 receipt_path.parent().unwrap().to_str().unwrap(),
+                idx,
                 date,
                 amount,
                 entry_name,
@@ -363,7 +364,7 @@ impl App {
 
         TableBuilder::new(ui)
             .striped(true)
-            .columns(Size::initial(40.0).at_least(40.0), self.max_cells + 2)
+            .columns(Size::initial(40.0).at_least(40.0), self.max_cells + 3)
             .cell_layout(
                 egui::Layout::left_to_right(egui::Align::Center)
                     .with_cross_align(egui::Align::Center),
@@ -405,6 +406,10 @@ impl App {
                         self.update_hidden();
                     }
 
+                    row.col(|ui| {
+                        ui.label(format!("{:0>3}", row_index));
+                    });
+
                     for cell in &self.rows[row_index].cells {
                         row.col(|ui| {
                             let row_hovered = contains_pointer
@@ -440,7 +445,7 @@ impl App {
                     let can_accept_what_is_being_dragged = meta.receipt.is_none();
 
                     let mut reread = false;
-                    let is_receipt_name_correct = meta.is_name_correct(csv_row);
+                    let is_receipt_name_correct = meta.is_name_correct(row_index, csv_row);
 
                     row.col(|ui| {
                         let response = match &meta.receipt {
@@ -471,7 +476,7 @@ impl App {
                                 .add_enabled(meta.receipt.is_some(), egui::Button::new("rename"))
                                 .clicked()
                             {
-                                meta.rename_pdf(csv_row);
+                                meta.rename_pdf(row_index, csv_row);
                                 reread = true;
                                 ui.close_menu();
                             }
