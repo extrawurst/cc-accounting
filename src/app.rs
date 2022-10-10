@@ -64,6 +64,12 @@ impl RowMetaData {
             None
         }
     }
+
+    pub fn get_receipt_filename(&self) -> Option<&str> {
+        self.receipt
+            .as_ref()
+            .and_then(|r| Path::new(r).file_name().and_then(|f| f.to_str()))
+    }
 }
 
 #[derive(Default, Debug, serde::Deserialize, serde::Serialize)]
@@ -364,7 +370,7 @@ impl App {
 
         TableBuilder::new(ui)
             .striped(true)
-            .columns(Size::initial(40.0).at_least(40.0), self.max_cells + 3)
+            .columns(Size::initial(40.0).at_least(30.0), self.max_cells + 3)
             .cell_layout(
                 egui::Layout::left_to_right(egui::Align::Center)
                     .with_cross_align(egui::Align::Center),
@@ -448,7 +454,7 @@ impl App {
                     let is_receipt_name_correct = meta.is_name_correct(row_index, csv_row);
 
                     row.col(|ui| {
-                        let response = match &meta.receipt {
+                        let response = match meta.get_receipt_filename() {
                             Some(receipt) => {
                                 let mut txt = WidgetText::from(receipt);
                                 if !is_receipt_name_correct {
