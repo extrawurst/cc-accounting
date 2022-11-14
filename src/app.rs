@@ -387,12 +387,21 @@ impl App {
                 let row_height = 18.0;
                 body.rows(row_height, rows, |row_index, mut row| {
                     let mut row_index = row_index + rows_skipped;
+
                     if !self.show_hidden {
                         while self.row_meta_data[row_index].hidden {
                             rows_skipped += 1;
                             row_index += 1;
                         }
                     }
+
+                    assert!(
+                        row_index < self.rows.len(),
+                        "{}<{} (skipped: {rows_skipped})",
+                        row_index,
+                        self.rows.len(),
+                    );
+                    assert!(row_index < self.row_meta_data.len());
 
                     let meta = &mut self.row_meta_data[row_index];
 

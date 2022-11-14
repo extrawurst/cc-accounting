@@ -10,31 +10,14 @@ rust-version = "1.61"
 name = "ccaccounting_bin"
 path = "src/main.rs"
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-
 [dependencies]
 egui = "0.19"
 egui_extras = "0.19"
 eframe = { version = "0.19", features = ["persistence"] }
-serde = { version = "1", features = ["derive"] } # You only need this if you want app persistence
+serde = { version = "1", features = [
+    "derive",
+] } # You only need this if you want app persistence
 csv = "1.1"
 tracing = "0.1"
 opener = "0.5"
-
-# native:
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tracing-subscriber = "0.3"
-
-[profile.release]
-opt-level = 2 # fast and small wasm
-
-[patch.crates-io]
-
-# If you want to use the bleeding edge version of egui and eframe:
-# egui = { git = "https://github.com/emilk/egui", branch = "master" }
-# eframe = { git = "https://github.com/emilk/egui", branch = "master" }
-
-# If you fork https://github.com/emilk/egui you can test with:
-# egui = { path = "../egui/egui" }
-# eframe = { path = "../egui/eframe" }

@@ -1,6 +1,8 @@
 #![warn(clippy::all, rust_2018_idioms)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+mod app;
+
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
@@ -12,6 +14,6 @@ fn main() {
     eframe::run_native(
         "cc app",
         native_options,
-        Box::new(|cc| Box::new(ccaccounting::App::new(cc))),
+        Box::new(|cc| Box::new(app::App::new(cc))),
     );
 }
