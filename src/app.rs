@@ -101,7 +101,11 @@ fn find_pdfs(path: &Path) -> Vec<PathBuf> {
     let mut res = Vec::new();
     for path in paths {
         let path = path.unwrap().path();
-        if path.extension().map(|ext| ext == "pdf").unwrap_or_default() {
+        if path
+            .extension()
+            .map(|ext| ext.to_ascii_lowercase() == "pdf")
+            .unwrap_or_default()
+        {
             res.push(path.to_path_buf());
         }
     }
