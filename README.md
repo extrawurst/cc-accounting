@@ -1,5 +1,6 @@
 # cc app
 
+* [ ] support invoices with `PDF` extension
 * [ ] persist only last input filename and reuse if no arg given
 * [ ] persist project state in separate file
 * [ ] allow hiding files in list
