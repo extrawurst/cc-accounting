@@ -11,9 +11,9 @@ name = "ccaccounting_bin"
 path = "src/main.rs"
 
 [dependencies]
-egui = "0.19"
-egui_extras = "0.19"
-eframe = { version = "0.19", features = ["persistence"] }
+egui = "0.20"
+egui_extras = "0.20"
+eframe = { version = "0.20", features = ["persistence"] }
 serde = { version = "1", features = [
     "derive",
 ] } # You only need this if you want app persistence

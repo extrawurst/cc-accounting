@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use eframe::epaint::{self};
 use egui::{
-    color, Color32, CursorIcon, Id, InnerResponse, Label, LayerId, Order, PointerButton, Rect,
+    ecolor, Color32, CursorIcon, Id, InnerResponse, Label, LayerId, Order, PointerButton, Rect,
     Response, Sense, Shape, Ui, Vec2, WidgetText,
 };
 
@@ -261,7 +261,11 @@ impl eframe::App for App {
                         for (idx, pdf) in self.pdfs.iter().enumerate() {
                             let item_id = Id::new(id_source).with(idx);
                             App::drag_source(ui, item_id, |ui| {
-                                ui.label(pdf.to_str().unwrap());
+                                let filename = pdf
+                                    .file_name()
+                                    .map(|f| f.to_string_lossy().to_string())
+                                    .unwrap_or_default();
+                                ui.label(&filename);
                             })
                             .map(|r| {
                                 r.context_menu(|ui| {
@@ -311,8 +315,8 @@ impl App {
         let mut stroke = style.bg_stroke;
         if is_being_dragged && !can_accept_what_is_being_dragged {
             // gray out:
-            fill = color::tint_color_towards(fill, ui.visuals().window_fill());
-            stroke.color = color::tint_color_towards(stroke.color, ui.visuals().window_fill());
+            fill = ecolor::tint_color_towards(fill, ui.visuals().window_fill());
+            stroke.color = ecolor::tint_color_towards(stroke.color, ui.visuals().window_fill());
         }
 
         ui.painter().set(
@@ -368,13 +372,16 @@ impl App {
     }
 
     fn draw_table(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
-        use egui_extras::{Size, TableBuilder};
+        use egui_extras::{Column, TableBuilder};
 
         let contains_pointer = ui.ui_contains_pointer();
 
         TableBuilder::new(ui)
             .striped(true)
-            .columns(Size::initial(40.0).at_least(30.0), self.max_cells + 3)
+            .columns(
+                Column::initial(30.0).at_least(20.0).clip(true),
+                self.max_cells + 3,
+            )
             .cell_layout(
                 egui::Layout::left_to_right(egui::Align::Center)
                     .with_cross_align(egui::Align::Center),
