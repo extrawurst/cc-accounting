@@ -212,6 +212,60 @@ impl App {
 
         // info!("pdfs after filter: {}", self.pdfs.len());
     }
+
+    fn draw_menu(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {
+        egui::menu::bar(ui, |ui| {
+            ui.menu_button("File", |ui| {
+                if ui.button("Clear All").clicked() {
+                    self.row_meta_data.iter_mut().for_each(|e| e.receipt = None);
+                    self.reread_pdfs();
+                    ui.close_menu();
+                }
+                if ui.button("Refresh Files").clicked() {
+                    self.reread_pdfs();
+                    ui.close_menu();
+                }
+                if ui.checkbox(&mut self.show_hidden, "Show Hidden").clicked() {
+                    ui.close_menu();
+                }
+
+                if ui.button("Quit").clicked() {
+                    frame.close();
+                }
+            });
+        });
+    }
+
+    fn draw_files(&mut self, ui: &mut Ui) {
+        ui.vertical_centered(|ui| {
+            ui.heading("Files");
+        });
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            let id_source = "my_drag_and_drop_demo";
+            for (idx, pdf) in self.pdfs.iter().enumerate() {
+                let item_id = Id::new(id_source).with(idx);
+                App::drag_source(ui, item_id, |ui| {
+                    let filename = pdf
+                        .file_name()
+                        .map(|f| f.to_string_lossy().to_string())
+                        .unwrap_or_default();
+                    ui.label(&filename);
+                })
+                .map(|r| {
+                    r.context_menu(|ui| {
+                        if ui.button("open").clicked() {
+                            ui.close_menu();
+                            opener::open(pdf).unwrap_or_default();
+                        }
+                    })
+                });
+
+                if ui.memory().is_being_dragged(item_id) {
+                    self.drag_row = Some(idx);
+                }
+            }
+        });
+    }
 }
 
 impl eframe::App for App {
@@ -222,66 +276,22 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             // The top panel is often a good place for a menu bar:
-            egui::menu::bar(ui, |ui| {
-                ui.menu_button("File", |ui| {
-                    if ui.button("Clear All").clicked() {
-                        self.row_meta_data.iter_mut().for_each(|e| e.receipt = None);
-                        self.reread_pdfs();
-                        ui.close_menu();
-                    }
-                    if ui.button("Refresh Files").clicked() {
-                        self.reread_pdfs();
-                        ui.close_menu();
-                    }
-                    if ui.checkbox(&mut self.show_hidden, "Show Hidden").clicked() {
-                        ui.close_menu();
-                    }
-
-                    if ui.button("Quit").clicked() {
-                        frame.close();
-                    }
-                });
-            });
+            self.draw_menu(ui, frame);
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            egui::CentralPanel::default().show_inside(ui, |ui| {
-                self.draw_table(ui, ctx);
-            });
-
-            egui::SidePanel::right("right_panel")
-                .resizable(true)
+            egui::SidePanel::left("right_panel")
                 .default_width(150.0)
                 .show_inside(ui, |ui| {
-                    ui.vertical_centered(|ui| {
-                        ui.heading("Files");
-                    });
-                    egui::ScrollArea::vertical().show(ui, |ui| {
-                        let id_source = "my_drag_and_drop_demo";
-                        for (idx, pdf) in self.pdfs.iter().enumerate() {
-                            let item_id = Id::new(id_source).with(idx);
-                            App::drag_source(ui, item_id, |ui| {
-                                let filename = pdf
-                                    .file_name()
-                                    .map(|f| f.to_string_lossy().to_string())
-                                    .unwrap_or_default();
-                                ui.label(&filename);
-                            })
-                            .map(|r| {
-                                r.context_menu(|ui| {
-                                    if ui.button("open").clicked() {
-                                        ui.close_menu();
-                                        opener::open(pdf).unwrap_or_default();
-                                    }
-                                })
-                            });
-
-                            if ui.memory().is_being_dragged(item_id) {
-                                self.drag_row = Some(idx);
-                            }
-                        }
-                    });
+                    self.draw_files(ui);
                 });
+
+            egui::CentralPanel::default().show_inside(ui, |ui| {
+                ui.vertical_centered(|ui| {
+                    ui.heading("Table");
+                });
+                self.draw_table(ui, ctx);
+            });
         });
     }
 }
@@ -378,10 +388,12 @@ impl App {
 
         TableBuilder::new(ui)
             .striped(true)
+            .auto_shrink([false; 2])
             .columns(
-                Column::initial(30.0).at_least(20.0).clip(true),
-                self.max_cells + 3,
+                Column::initial(30.0).at_least(10.0).clip(true),
+                self.max_cells + 2,
             )
+            .column(Column::remainder())
             .cell_layout(
                 egui::Layout::left_to_right(egui::Align::Center)
                     .with_cross_align(egui::Align::Center),
@@ -456,7 +468,7 @@ impl App {
 
                             let mut w = WidgetText::from(cell);
                             if row_hovered {
-                                w = w.background_color(Color32::LIGHT_GREEN);
+                                w = w.background_color(Color32::from_gray(50));
                             }
                             ui.label(w);
                             if is_hidden {
