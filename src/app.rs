@@ -2,8 +2,8 @@ use std::path::{Path, PathBuf};
 
 use eframe::epaint::{self};
 use egui::{
-    ecolor, Color32, CursorIcon, Id, InnerResponse, Label, LayerId, Order, PointerButton, Rect,
-    Response, Sense, Shape, Ui, Vec2, WidgetText,
+    ecolor, Color32, CursorIcon, Id, InnerResponse, Label, LayerId, Modifiers, Order,
+    PointerButton, Rect, Response, Sense, Shape, Ui, Vec2, WidgetText,
 };
 
 const APP_KEY: &str = "CC";
@@ -192,7 +192,7 @@ impl App {
     fn reread_pdfs(&mut self) {
         self.pdfs = find_pdfs(self.input_file.parent().unwrap());
 
-        // info!("found pdfs: {}", self.pdfs.len());
+        // tracing::info!("found pdfs: {}", self.pdfs.len());
 
         self.pdfs = self
             .pdfs
@@ -214,6 +214,12 @@ impl App {
     }
 
     fn draw_menu(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {
+        let refresh_shortcut = egui::KeyboardShortcut::new(Modifiers::COMMAND, egui::Key::R);
+
+        if ui.input_mut().consume_shortcut(&refresh_shortcut) {
+            self.reread_pdfs();
+        }
+
         egui::menu::bar(ui, |ui| {
             ui.menu_button("File", |ui| {
                 if ui.button("Clear All").clicked() {
@@ -221,10 +227,17 @@ impl App {
                     self.reread_pdfs();
                     ui.close_menu();
                 }
-                if ui.button("Refresh Files").clicked() {
+                if ui
+                    .add(
+                        egui::Button::new("Refresh Files")
+                            .shortcut_text(ui.ctx().format_shortcut(&refresh_shortcut)),
+                    )
+                    .clicked()
+                {
                     self.reread_pdfs();
                     ui.close_menu();
                 }
+
                 if ui.checkbox(&mut self.show_hidden, "Show Hidden").clicked() {
                     ui.close_menu();
                 }
