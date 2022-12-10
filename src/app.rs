@@ -411,6 +411,8 @@ impl App {
                 egui::Layout::left_to_right(egui::Align::Center)
                     .with_cross_align(egui::Align::Center),
             )
+            //TODO: allow scrolling once we have the indexing fixed for it
+            .vscroll(false)
             .resizable(true)
             .body(|body| {
                 let rows = if self.show_hidden {
