@@ -262,7 +262,7 @@ impl App {
                         .file_name()
                         .map(|f| f.to_string_lossy().to_string())
                         .unwrap_or_default();
-                    ui.label(&filename);
+                    ui.label(filename);
                 })
                 .map(|r| {
                     r.context_menu(|ui| {
@@ -460,7 +460,7 @@ impl App {
                     }
 
                     row.col(|ui| {
-                        ui.label(format!("{:0>3}", row_index));
+                        ui.label(format!("{row_index:0>3}"));
                     });
 
                     for cell in &self.rows[row_index].cells {
