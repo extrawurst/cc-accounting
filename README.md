@@ -7,6 +7,7 @@ Simple app to assign each credit card expense on your card statement (as CSV) an
 
 # TODOs
 
+* [ ] support windows/linux
 * [ ] allow hiding files in list
 * [ ] allow configuring the colums used in filename
 * [ ] allow hiding columns
