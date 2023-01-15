@@ -9,6 +9,7 @@ description = "creditcard accounting tool"
 
 #see https://github.com/burtonageo/cargo-bundle
 [package.metadata.bundle]
+icon = ["icons/*.png"]
 identifier = "com.extrawurst.ccaccounting"
 
 [[bin]]
