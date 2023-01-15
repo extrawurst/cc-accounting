@@ -1,9 +1,15 @@
 
 # ccaccounting app
 
-Simple app to assign each credit card expense on your card statement (as CSV) an invoice and simplifies renaming these invoices to easily find them again and for the sanity of your accounting. Load up CSV (right now only miles and more format supported) and start assigning PDFs:
+Simple app to assign each credit card expense on your card statement (as CSV) an invoice and simplifies renaming these invoices to easily find them again and for the sanity of your accounting. 
+
+Load up CSV (right now only miles and more format supported) and start assigning PDFs:
 
 ![](assets/screenshot-01.png)
+
+But Why?
+
+Because there are numerous tools that let you assign invoices to your expenses directly against your bank account but for CC statements which usually only generate a single bank account expense you need to still make sure not to forget to upload an invoice per expense, this tool lets you do that easily.
 
 # TODOs
 
