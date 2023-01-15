@@ -7,6 +7,7 @@ edition = "2021"
 rust-version = "1.61"
 description = "creditcard accounting tool"
 
+#see https://github.com/burtonageo/cargo-bundle
 [package.metadata.bundle]
 identifier = "com.extrawurst.ccaccounting"
 
@@ -15,11 +16,16 @@ name = "ccaccounting"
 path = "src/main.rs"
 
 [dependencies]
+anyhow = "1.0"
 csv = "1.1"
+dispatch = "0.2.0"
 eframe = { version = "0.20", features = ["persistence"] }
 egui = "0.20"
 egui_extras = "0.20"
 opener = "0.5"
+# native-dialog = "0.6.3"
+rfd = "0.10"
+ron = "0.8"
 serde = { version = "1", features = [
     "derive",
 ] } # You only need this if you want app persistence
