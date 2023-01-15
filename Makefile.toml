@@ -17,6 +17,11 @@ install_crate = "cargo-bundle"
 command = "cargo"
 args = ["bundle"]
 
+[tasks.bundle-release]
+install_crate = "cargo-bundle"
+command = "cargo"
+args = ["bundle","--release"]
+
 [tasks.tests]
 command = "cargo"
 args = ["t"]

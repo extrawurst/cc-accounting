@@ -7,3 +7,7 @@ check:
 bundle:
 	cargo make bundle
 	cp -r target/debug/bundle/osx/ccaccounting.app . 
+
+bundle-release:
+	cargo make bundle-release
+	cp -r target/release/bundle/osx/ccaccounting.app . 
