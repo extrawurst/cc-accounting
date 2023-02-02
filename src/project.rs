@@ -1,8 +1,8 @@
 use anyhow::Result;
 use eframe::epaint;
 use egui::{
-    ecolor, Color32, CursorIcon, Id, InnerResponse, Label, LayerId, Modifiers, Order,
-    PointerButton, Rect, Response, Sense, Shape, Ui, Vec2, WidgetText,
+    ecolor, Color32, CursorIcon, Id, InnerResponse, KeyboardShortcut, Label, LayerId, Modifiers,
+    Order, PointerButton, Rect, Response, Sense, Shape, Ui, Vec2, WidgetText,
 };
 use ron::ser::PrettyConfig;
 use std::{
@@ -25,7 +25,7 @@ pub struct StateData {
     pub row_meta_data: Vec<RowMetaData>,
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct Project {
     state: StateData,
 
@@ -36,6 +36,24 @@ pub struct Project {
     max_cells: usize,
     drop_row: Option<usize>,
     drag_row: Option<usize>,
+
+    shortcut_reread_files: KeyboardShortcut,
+}
+
+impl Default for Project {
+    fn default() -> Self {
+        Self {
+            shortcut_reread_files: egui::KeyboardShortcut::new(Modifiers::COMMAND, egui::Key::R),
+            state: Default::default(),
+            input_file: Default::default(),
+            rows: Default::default(),
+            pdfs: Default::default(),
+            visible_rows: Default::default(),
+            max_cells: Default::default(),
+            drop_row: Default::default(),
+            drag_row: Default::default(),
+        }
+    }
 }
 
 impl Project {
@@ -88,7 +106,7 @@ impl Project {
         // info!("update hidden: {}", self.visible_rows);
     }
 
-    fn reread_pdfs(&mut self) {
+    pub fn reread_pdfs(&mut self) {
         self.pdfs = find_pdfs(self.input_file.parent().unwrap());
 
         // tracing::info!("found pdfs: {}", self.pdfs.len());
@@ -113,11 +131,6 @@ impl Project {
     }
 
     pub fn populate_menu(&mut self, ui: &mut Ui) {
-        let refresh_shortcut = egui::KeyboardShortcut::new(Modifiers::COMMAND, egui::Key::R);
-        if ui.input_mut().consume_shortcut(&refresh_shortcut) {
-            self.reread_pdfs();
-        }
-
         if ui.button("Clear All").clicked() {
             self.state
                 .row_meta_data
@@ -129,7 +142,7 @@ impl Project {
         if ui
             .add(
                 egui::Button::new("Refresh Files")
-                    .shortcut_text(ui.ctx().format_shortcut(&refresh_shortcut)),
+                    .shortcut_text(ui.ctx().format_shortcut(&self.shortcut_reread_files)),
             )
             .clicked()
         {
@@ -488,6 +501,12 @@ impl Project {
             .parent()
             .ok_or_else(|| anyhow::anyhow!("parent path of input invalid"))?
             .join("state.ron"))
+    }
+
+    pub(crate) fn check_shortcuts(&mut self, ui: &mut Ui) {
+        if ui.input_mut().consume_shortcut(&self.shortcut_reread_files) {
+            self.reread_pdfs();
+        }
     }
 }
 

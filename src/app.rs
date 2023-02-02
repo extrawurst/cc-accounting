@@ -44,6 +44,10 @@ impl App {
 
     fn draw_menu(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {
         egui::menu::bar(ui, |ui| {
+            if let Some(p) = self.project.as_mut() {
+                p.check_shortcuts(ui)
+            }
+
             ui.menu_button("File", |ui| {
                 if let Some(project) = self.project.as_mut() {
                     project.populate_menu(ui);
