@@ -69,9 +69,9 @@ impl Project {
             ..Default::default()
         };
 
-        project.reread_pdfs();
-
         project.load()?;
+
+        project.reread_pdfs();
 
         project.update_hidden();
 
