@@ -251,6 +251,7 @@ impl Project {
                     });
 
                     let is_hidden = meta.hidden;
+                    let is_assigned = meta.receipt.is_some();
 
                     if update_hidden {
                         self.update_hidden();
@@ -276,6 +277,9 @@ impl Project {
 
                             if is_hidden {
                                 ui.style_mut().visuals.override_text_color = Some(Color32::GRAY);
+                            } else if is_assigned {
+                                ui.style_mut().visuals.override_text_color =
+                                    Some(Color32::DARK_GREEN);
                             }
 
                             let mut w = WidgetText::from(cell);
