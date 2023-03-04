@@ -60,7 +60,7 @@ impl Project {
     pub fn new(input: PathBuf) -> Result<Self> {
         assert_eq!(input.extension().unwrap(), "csv");
 
-        let file = std::fs::File::open(&input).unwrap();
+        let file = std::fs::File::open(&input)?;
         let mut rdr = csv::ReaderBuilder::new()
             .flexible(true)
             .delimiter(b';')
@@ -68,7 +68,7 @@ impl Project {
         let mut rows = Vec::new();
         let mut max_cells = 0;
         for result in rdr.byte_records() {
-            let result = result.unwrap();
+            let result = result?;
             let mut row = Vec::new();
             for result in result.iter() {
                 row.push(String::from_utf8_lossy(result).to_string());
