@@ -31,8 +31,8 @@ pub struct Project {
 
     input_file: PathBuf,
     rows: Vec<CsvRow>,
+    visible_rows: Vec<usize>,
     pdfs: Vec<PathBuf>,
-    visible_rows: usize,
     max_cells: usize,
     drop_row: Option<usize>,
     drag_row: Option<usize>,
@@ -101,8 +101,10 @@ impl Project {
             .state
             .row_meta_data
             .iter()
-            .filter(|r| !r.hidden)
-            .count();
+            .enumerate()
+            .filter(|(_, r)| !r.hidden)
+            .map(|(i, _)| i)
+            .collect();
         // info!("update hidden: {}", self.visible_rows);
     }
 
@@ -221,35 +223,22 @@ impl Project {
                 egui::Layout::left_to_right(egui::Align::Center)
                     .with_cross_align(egui::Align::Center),
             )
-            //TODO: allow scrolling once we have the indexing fixed for it
-            .vscroll(false)
             .resizable(true)
             .body(|body| {
                 let rows = if self.state.show_hidden {
                     self.rows.len()
                 } else {
-                    self.visible_rows
+                    self.visible_rows.len()
                 };
 
-                let mut rows_skipped = 0;
                 let row_height = 18.0;
+
                 body.rows(row_height, rows, |row_index, mut row| {
-                    let mut row_index = row_index + rows_skipped;
-
-                    if !self.state.show_hidden {
-                        while self.state.row_meta_data[row_index].hidden {
-                            rows_skipped += 1;
-                            row_index += 1;
-                        }
-                    }
-
-                    assert!(
-                        row_index < self.rows.len(),
-                        "{}<{} (skipped: {rows_skipped})",
-                        row_index,
-                        self.rows.len(),
-                    );
-                    assert!(row_index < self.state.row_meta_data.len());
+                    let row_index = if self.state.show_hidden {
+                        row_index
+                    } else {
+                        self.visible_rows[row_index]
+                    };
 
                     let meta = &mut self.state.row_meta_data[row_index];
 
