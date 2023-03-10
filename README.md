@@ -18,6 +18,7 @@ Because there are numerous tools that let you assign invoices to your expenses d
 * [ ] allow configuring the colums used in filename
 * [ ] allow hiding columns
 * [ ] allow dropping in entire row
+* [ ] remember original filename (revert to it on `clear`)
 
 # Support
 
