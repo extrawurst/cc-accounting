@@ -105,7 +105,11 @@ impl Project {
             .filter(|(_, r)| !r.hidden)
             .map(|(i, _)| i)
             .collect();
-        // info!("update hidden: {}", self.visible_rows);
+        // tracing::info!(
+        //     "update hidden: {:?} ({:?})",
+        //     self.visible_rows,
+        //     self.visible_rows.len()
+        // );
     }
 
     pub fn reread_pdfs(&mut self) {
@@ -232,6 +236,7 @@ impl Project {
                 };
 
                 let row_height = 18.0;
+                let mut update_hidden = false;
 
                 body.rows(row_height, rows, |row_index, mut row| {
                     let row_index = if self.state.show_hidden {
@@ -242,7 +247,6 @@ impl Project {
 
                     let meta = &mut self.state.row_meta_data[row_index];
 
-                    let mut update_hidden = false;
                     row.col(|ui| {
                         if self.state.show_hidden {
                             update_hidden = ui.checkbox(&mut meta.hidden, "hide").changed();
@@ -254,10 +258,6 @@ impl Project {
 
                     let is_hidden = meta.hidden;
                     let is_assigned = meta.receipt.is_some();
-
-                    if update_hidden {
-                        self.update_hidden();
-                    }
 
                     row.col(|ui| {
                         ui.label(format!("{row_index:0>3}"));
@@ -354,6 +354,10 @@ impl Project {
                         self.reread_pdfs();
                     }
                 });
+
+                if update_hidden {
+                    self.update_hidden();
+                }
             });
 
         if ui.input().pointer.any_released() {
