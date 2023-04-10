@@ -18,5 +18,6 @@ fn main() {
         "ccaccounting",
         native_options,
         Box::new(|cc| Box::new(app::App::new(cc))),
-    );
+    )
+    .unwrap();
 }

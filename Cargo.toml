@@ -1,7 +1,7 @@
 [package]
 name = "ccaccounting"
 default-run = "ccaccounting"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["mail@rusticorn.com"]
 edition = "2021"
 rust-version = "1.61"
@@ -20,12 +20,12 @@ path = "src/main.rs"
 anyhow = "1.0"
 csv = "1.1"
 dispatch = "0.2.0"
-eframe = { version = "0.20", features = ["persistence"] }
-egui = "0.20"
-egui_extras = "0.20"
+eframe = { version = "0.21", features = ["persistence"] }
+egui = "0.21"
+egui_extras = "0.21"
 opener = "0.5"
 # native-dialog = "0.6.3"
-rfd = "0.10"
+rfd = "0.11"
 ron = "0.8"
 serde = { version = "1", features = [
     "derive",

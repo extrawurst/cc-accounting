@@ -188,7 +188,7 @@ impl Project {
                     })
                 });
 
-                if ui.memory().is_being_dragged(item_id) {
+                if ui.memory_mut(|mem| mem.is_being_dragged(item_id)) {
                     self.drag_row = Some(idx);
                 }
             }
@@ -344,7 +344,7 @@ impl Project {
                             }
                         });
 
-                        let is_being_dragged = ui.memory().is_anything_being_dragged();
+                        let is_being_dragged = ui.memory_mut(|mem| mem.is_anything_being_dragged());
                         if is_being_dragged && can_accept_what_is_being_dragged && hovered_label {
                             self.drop_row = Some(row_index);
                         }
@@ -360,7 +360,7 @@ impl Project {
                 }
             });
 
-        if ui.input().pointer.any_released() {
+        if ui.input(|input| input.pointer.any_released()) {
             self.check_drop();
         }
     }
@@ -383,7 +383,7 @@ impl Project {
         can_accept_what_is_being_dragged: bool,
         body: impl FnOnce(&mut Ui) -> R,
     ) -> InnerResponse<R> {
-        let is_being_dragged = ui.memory().is_anything_being_dragged();
+        let is_being_dragged = ui.memory_mut(|mem| mem.is_anything_being_dragged());
 
         let margin = Vec2::splat(4.0);
 
@@ -424,7 +424,7 @@ impl Project {
     }
 
     pub fn drag_source(ui: &mut Ui, id: Id, body: impl FnOnce(&mut Ui)) -> Option<Response> {
-        let is_being_dragged = ui.memory().is_being_dragged(id);
+        let is_being_dragged = ui.memory_mut(|mem| mem.is_being_dragged(id));
 
         if !is_being_dragged {
             let response = ui.scope(body).response;
@@ -432,15 +432,15 @@ impl Project {
             // Check for drags:
             let response = ui.interact(response.rect, id, Sense::drag());
             if response.dragged_by(PointerButton::Primary) {
-                ui.memory().set_dragged_id(id);
-                ui.output().cursor_icon = CursorIcon::Grab;
+                ui.memory_mut(|mem| mem.set_dragged_id(id));
+                ui.output_mut(|out| out.cursor_icon = CursorIcon::Grab);
             } else if response.hovered() {
-                ui.memory().set_dragged_id(Id::null());
+                ui.memory_mut(|mem| mem.set_dragged_id(Id::null()));
             }
 
             Some(response)
         } else {
-            ui.output().cursor_icon = CursorIcon::Grabbing;
+            ui.output_mut(|out| out.cursor_icon = CursorIcon::Grabbing);
 
             // Paint the body to a new layer:
             let layer_id = LayerId::new(Order::Tooltip, id);
@@ -497,7 +497,7 @@ impl Project {
     }
 
     pub(crate) fn check_shortcuts(&mut self, ui: &mut Ui) {
-        if ui.input_mut().consume_shortcut(&self.shortcut_reread_files) {
+        if ui.input_mut(|input| input.consume_shortcut(&self.shortcut_reread_files)) {
             self.reread_pdfs();
         }
     }
