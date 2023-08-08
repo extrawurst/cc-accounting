@@ -35,6 +35,8 @@ impl RowMetaData {
         if let Some(receipt) = self.receipt.as_ref() {
             let receipt_path = Path::new(receipt);
             let date = row.cells[0].clone();
+            //TODO: fix poor mans date format fix
+            let date = date.replace("/", ".");
             let amount = row.cells[3].clone();
             let entry_name = row.cells[2].clone().replace('/', "_");
             let target_name = format!(
