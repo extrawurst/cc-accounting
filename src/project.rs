@@ -496,7 +496,7 @@ impl Project {
             .join("state.ron"))
     }
 
-    pub(crate) fn check_shortcuts(&mut self, ui: &mut Ui) {
+    pub(crate) fn check_shortcuts(&mut self, ui: &Ui) {
         if ui.input_mut(|input| input.consume_shortcut(&self.shortcut_reread_files)) {
             self.reread_pdfs();
         }
